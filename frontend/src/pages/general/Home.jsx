@@ -425,7 +425,7 @@ export default function Home() {
 
     async function fetchFoodItems() {
       try {
-        const { data } = await axios.get("http://localhost:3000/api/food", {
+        const { data } = await axios.get("https://bites-rho.vercel.app/api/food", {
           withCredentials: true,
         });
         const foodItems = Array.isArray(data.foodItems) ? data.foodItems : [];
@@ -501,7 +501,7 @@ export default function Home() {
 
     try {
       const { data } = await axios.patch(
-        `http://localhost:3000/api/food/${reel.id}/like`,
+        `https://bites-rho.vercel.app/api/food/${reel.id}/like`,
         {},
         { withCredentials: true },
       );
@@ -523,7 +523,7 @@ export default function Home() {
 
     try {
       const { data } = await axios.post(
-        `http://localhost:3000/api/food/${reel.id}/order`,
+        `https://bites-rho.vercel.app/api/food/${reel.id}/order`,
         {},
         { withCredentials: true },
       );
@@ -544,7 +544,7 @@ export default function Home() {
 
     try {
       const { data } = await axios.post(
-        `http://localhost:3000/api/food/${reel.id}/comments`,
+        `https://bites-rho.vercel.app/api/food/${reel.id}/comments`,
         { text },
         { withCredentials: true },
       );
@@ -566,7 +566,7 @@ export default function Home() {
 
   const openProfile = async () => {
     try {
-      await axios.get("http://localhost:3000/api/auth/user/me", {
+      await axios.get("https://bites-rho.vercel.app/api/auth/user/me", {
         withCredentials: true,
       });
       navigate("/profile");
@@ -577,7 +577,7 @@ export default function Home() {
 
     try {
       const { data } = await axios.get(
-        "http://localhost:3000/api/auth/food-partner/me",
+        "https://bites-rho.vercel.app/api/auth/food-partner/me",
         { withCredentials: true },
       );
       const partnerId = data.foodPartner?.id;

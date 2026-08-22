@@ -23,8 +23,8 @@ export default function FoodPartnerProfile() {
     async function loadStore() {
       try {
         const endpoint = partnerId
-          ? `http://localhost:3000/api/food-partner/${partnerId}`
-          : "http://localhost:3000/api/food-partner/me";
+          ? `https://bites-rho.vercel.app/api/food-partner/${partnerId}`
+          : "https://bites-rho.vercel.app/api/food-partner/me";
         const { data } = await axios.get(endpoint, { withCredentials: true });
         if (!cancelled) {
           setPartner(data.foodPartner);
@@ -34,7 +34,7 @@ export default function FoodPartnerProfile() {
 
         if (!partnerId) {
           const ordersResponse = await axios.get(
-            "http://localhost:3000/api/orders/received",
+            "https://bites-rho.vercel.app/api/orders/received",
             { withCredentials: true },
           );
           if (!cancelled) setOrders(ordersResponse.data.orders || []);
@@ -65,7 +65,7 @@ export default function FoodPartnerProfile() {
   const updateOrderStatus = async (orderId, nextStatus) => {
     try {
       const { data } = await axios.patch(
-        `http://localhost:3000/api/orders/${orderId}/status`,
+        `https://bites-rho.vercel.app/api/orders/${orderId}/status`,
         { status: nextStatus },
         { withCredentials: true },
       );
@@ -81,7 +81,7 @@ export default function FoodPartnerProfile() {
     const nextStatus = status === "Open" ? "Closed" : "Open";
     try {
       await axios.patch(
-        "http://localhost:3000/api/auth/food-partner/status",
+        "https://bites-rho.vercel.app/api/auth/food-partner/status",
         { status: nextStatus },
         { withCredentials: true },
       );

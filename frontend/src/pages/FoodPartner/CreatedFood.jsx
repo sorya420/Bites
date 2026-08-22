@@ -49,7 +49,7 @@ export default function CreatedFood() {
 		setIsSubmitting(true);
 		setStatus({ type: "", message: "" });
 		try {
-			await axios.post("http://localhost:3000/api/food", payload, {
+			await axios.post("https://bites-rho.vercel.app/api/food", payload, {
 				withCredentials: true,
 			});
 			setStatus({ type: "success", message: "Food video published." });
