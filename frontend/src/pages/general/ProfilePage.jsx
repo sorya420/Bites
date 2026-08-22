@@ -80,7 +80,7 @@ export default function ProfilePage() {
 
     try {
       const response = await axios.patch(
-        "https://bites-rho.vercel.app/api/auth/user/profile-image",
+        "http://localhost:3000/api/auth/user/profile-image",
         formData,
         { withCredentials: true },
       );
@@ -100,7 +100,7 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     try {
-      await axios.get("https://bites-rho.vercel.app/api/auth/user/logout", {
+      await axios.get("http://localhost:3000/api/auth/user/logout", {
         withCredentials: true,
       });
       navigate("/user/login");
@@ -115,8 +115,8 @@ export default function ProfilePage() {
     async function loadProfile() {
       try {
         const [profileResponse, ordersResponse] = await Promise.all([
-          axios.get("https://bites-rho.vercel.app/api/auth/user/me", { withCredentials: true }),
-          axios.get("https://bites-rho.vercel.app/api/orders/mine", { withCredentials: true }),
+          axios.get("http://localhost:3000/api/auth/user/me", { withCredentials: true }),
+          axios.get("http://localhost:3000/api/orders/mine", { withCredentials: true }),
         ]);
 
         if (!cancelled) {

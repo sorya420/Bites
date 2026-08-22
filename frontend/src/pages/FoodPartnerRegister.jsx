@@ -26,7 +26,7 @@ const FoodPartnerRegister = () => {
     setLoading(true);
     try {
       const res = await axios.post(
-        "https://bites-rho.vercel.app/api/auth/food-partner/register",
+        "http://localhost:3000/api/auth/food-partner/register",
         formData,
         { withCredentials: true }
       );

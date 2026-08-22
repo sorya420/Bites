@@ -18,7 +18,7 @@ export default function FoodPartnerStore() {
     async function loadStore() {
       try {
         const { data } = await axios.get(
-          `https://bites-rho.vercel.app/api/food-partner/${partnerId}`,
+          `http://localhost:3000/api/food-partner/${partnerId}`,
           { withCredentials: true },
         );
         if (!cancelled) {
@@ -45,7 +45,7 @@ export default function FoodPartnerStore() {
   const toggleFollow = async () => {
     try {
       const { data } = await axios.patch(
-        `https://bites-rho.vercel.app/api/auth/user/follow/${partnerId}`,
+        `http://localhost:3000/api/auth/user/follow/${partnerId}`,
         {},
         { withCredentials: true },
       );
@@ -78,7 +78,7 @@ export default function FoodPartnerStore() {
     setIsSubmitting(true);
     try {
       await axios.post(
-        "https://bites-rho.vercel.app/api/orders",
+        "http://localhost:3000/api/orders",
         { items },
         { withCredentials: true },
       );

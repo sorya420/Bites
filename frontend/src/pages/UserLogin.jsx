@@ -22,7 +22,7 @@ const UserLogin = () => {
     setLoading(true);
     try {
       const res = await axios.post(
-        "https://bites-rho.vercel.app/api/auth/user/login",
+        "http://localhost:3000/api/auth/user/login",
         formData,
         { withCredentials: true }
       );

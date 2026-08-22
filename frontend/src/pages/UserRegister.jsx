@@ -23,7 +23,7 @@ const UserRegister = () => {
     setLoading(true);
     try {
       const res = await axios.post(
-        "https://bites-rho.vercel.app/api/auth/user/register",
+        "http://localhost:3000/api/auth/user/register",
         formData,
         { withCredentials: true }
       );
