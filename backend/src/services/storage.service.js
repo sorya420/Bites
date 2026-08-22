@@ -1,21 +1,25 @@
-const ImageKit = require("@imagekit/nodejs");
+const ImageKit = require("imagekit");
 
 const imagekit = new ImageKit({
+  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
   privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
 });
 
-async function getUploadAuthParams() {
-  const { token, expire, signature } =
-    imagekit.helper.getAuthenticationParameters();
+async function getAuthenticationParameters() {
+  return imagekit.getAuthenticationParameters();
+}
 
-  return {
-    token,
-    expire,
-    signature,
-    publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-  };
+async function uploadFile(file, fileName) {
+  const result = await imagekit.upload({
+    file,
+    fileName,
+  });
+
+  return result;
 }
 
 module.exports = {
-  getUploadAuthParams,
+  getAuthenticationParameters,
+  uploadFile,
 };

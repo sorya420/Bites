@@ -1,39 +1,10 @@
 const foodModel = require("../models/food.model");
-const storageService = require("../services/storage.service");
 const foodPartnerModel = require("../models/foodpartner.model");
 const orderController = require("./order.controller");
 
-
-// ==========================================
-// GET IMAGEKIT UPLOAD AUTH
-// ==========================================
-
-async function getImageKitUploadAuth(req, res) {
-  try {
-    const authParams = await storageService.getUploadAuthParams();
-
-    return res.status(200).json(authParams);
-  } catch (error) {
-    console.error("ImageKit auth error:", error);
-
-    return res.status(500).json({
-      message: "Unable to generate upload authentication",
-    });
-  }
-}
-
-
-// ==========================================
-// CREATE FOOD
-// ==========================================
-
 async function createFood(req, res) {
   try {
-    const {
-      name,
-      description,
-      video,
-    } = req.body;
+    const { name, description, video } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -41,7 +12,13 @@ async function createFood(req, res) {
       });
     }
 
-    if (!video) {
+    if (!description || !description.trim()) {
+      return res.status(400).json({
+        message: "Food description is required",
+      });
+    }
+
+    if (!video || !video.trim()) {
       return res.status(400).json({
         message: "Food video is required",
       });
@@ -49,7 +26,7 @@ async function createFood(req, res) {
 
     const foodItem = await foodModel.create({
       name: name.trim(),
-      description: description?.trim(),
+      description: description.trim(),
       video,
       foodPartner: req.foodPartner._id,
     });
@@ -58,7 +35,6 @@ async function createFood(req, res) {
       message: "Food created successfully",
       food: foodItem,
     });
-
   } catch (error) {
     console.error("createFood error:", error);
 
@@ -68,90 +44,86 @@ async function createFood(req, res) {
   }
 }
 
-
-// ==========================================
-// GET FOOD
-// ==========================================
-
 async function getFoodItem(req, res) {
-  const foodItems = await foodModel
-    .find({})
-    .sort({
-      createdAt: -1,
-      _id: -1,
-    })
-    .populate(
-      "foodPartner",
-      "name email contactName phone address"
-    );
+  try {
+    const foodItems = await foodModel
+      .find({})
+      .sort({ createdAt: -1, _id: -1 })
+      .populate(
+        "foodPartner",
+        "name email contactName phone address status"
+      );
 
-  const userId = req.user?._id?.toString();
+    const userId = req.user?._id?.toString();
 
-  return res.status(200).json({
-    message: "Food items fetched Successfully",
+    return res.status(200).json({
+      message: "Food items fetched successfully",
 
-    foodItems: foodItems.map((food) => ({
-      ...food.toObject(),
+      foodItems: foodItems.map((food) => ({
+        ...food.toObject(),
 
-      comments: food.comments.length,
+        comments: food.comments.length,
 
-      isLiked: Boolean(
-        userId &&
-        food.likedBy.some(
-          (id) => id.toString() === userId
-        )
-      ),
-    })),
-  });
-}
+        isLiked: Boolean(
+          userId &&
+            food.likedBy.some(
+              (id) => id.toString() === userId
+            )
+        ),
+      })),
+    });
+  } catch (error) {
+    console.error("getFoodItem error:", error);
 
-
-// ==========================================
-// TOGGLE LIKE
-// ==========================================
-
-async function toggleLike(req, res) {
-  const foodItem = await foodModel.findById(
-    req.params.foodId
-  );
-
-  if (!foodItem) {
-    return res.status(404).json({
-      message: "Food item not found",
+    return res.status(500).json({
+      message: "Unable to fetch food items",
     });
   }
-
-  const userId = req.user._id;
-
-  const alreadyLiked = foodItem.likedBy.some(
-    (id) => id.equals(userId)
-  );
-
-  if (alreadyLiked) {
-    foodItem.likedBy.pull(userId);
-    req.user.likedFoodItems.pull(foodItem._id);
-  } else {
-    foodItem.likedBy.addToSet(userId);
-    req.user.likedFoodItems.addToSet(foodItem._id);
-  }
-
-  foodItem.likes = foodItem.likedBy.length;
-
-  await Promise.all([
-    foodItem.save(),
-    req.user.save(),
-  ]);
-
-  return res.status(200).json({
-    liked: !alreadyLiked,
-    likes: foodItem.likes,
-  });
 }
 
+async function toggleLike(req, res) {
+  try {
+    const foodItem = await foodModel.findById(req.params.foodId);
 
-// ==========================================
-// PLACE ORDER
-// ==========================================
+    if (!foodItem) {
+      return res.status(404).json({
+        message: "Food item not found",
+      });
+    }
+
+    const userId = req.user._id;
+
+    const alreadyLiked = foodItem.likedBy.some((id) =>
+      id.equals(userId)
+    );
+
+    if (alreadyLiked) {
+      foodItem.likedBy.pull(userId);
+      req.user.likedFoodItems.pull(foodItem._id);
+    } else {
+      foodItem.likedBy.addToSet(userId);
+      req.user.likedFoodItems.addToSet(foodItem._id);
+    }
+
+    foodItem.likes = foodItem.likedBy.length;
+
+    await Promise.all([
+      foodItem.save(),
+      req.user.save(),
+    ]);
+
+    return res.status(200).json({
+      liked: !alreadyLiked,
+      likes: foodItem.likes,
+    });
+  } catch (error) {
+    console.error("toggleLike error:", error);
+
+    return res.status(500).json({
+      message: "Unable to update like",
+    });
+  }
+}
 
 async function placeOrder(req, res) {
   req.body = {
@@ -177,84 +149,88 @@ async function placeOrder(req, res) {
   return orderController.createOrder(req, res);
 }
 
-
-// ==========================================
-// ADD COMMENT
-// ==========================================
-
 async function addComment(req, res) {
-  const text = req.body.text?.trim();
+  try {
+    const text = req.body.text?.trim();
 
-  if (!text) {
-    return res.status(400).json({
-      message: "Comment text is required",
+    if (!text) {
+      return res.status(400).json({
+        message: "Comment text is required",
+      });
+    }
+
+    const foodItem = await foodModel.findById(
+      req.params.foodId
+    );
+
+    if (!foodItem) {
+      return res.status(404).json({
+        message: "Food item not found",
+      });
+    }
+
+    foodItem.comments.push({
+      user: req.user._id,
+      text,
+    });
+
+    await foodItem.save();
+
+    return res.status(201).json({
+      message: "Comment added successfully",
+      comments: foodItem.comments.length,
+    });
+  } catch (error) {
+    console.error("addComment error:", error);
+
+    return res.status(500).json({
+      message: "Unable to add comment",
     });
   }
-
-  const foodItem = await foodModel.findById(
-    req.params.foodId
-  );
-
-  if (!foodItem) {
-    return res.status(404).json({
-      message: "Food item not found",
-    });
-  }
-
-  foodItem.comments.push({
-    user: req.user._id,
-    text,
-  });
-
-  await foodItem.save();
-
-  return res.status(201).json({
-    message: "Comment added successfully",
-    comments: foodItem.comments.length,
-  });
 }
-
-
-// ==========================================
-// GET FOOD PARTNER
-// ==========================================
 
 async function getFoodPartner(req, res) {
-  const foodPartner =
-    await foodPartnerModel
-      .findById(req.params.partnerId)
-      .select(
-        "name email contactName phone address status"
-      );
+  try {
+    const foodPartner =
+      await foodPartnerModel
+        .findById(req.params.partnerId)
+        .select(
+          "name email contactName phone address status"
+        );
 
-  if (!foodPartner) {
-    return res.status(404).json({
-      message: "Food partner not found",
+    if (!foodPartner) {
+      return res.status(404).json({
+        message: "Food partner not found",
+      });
+    }
+
+    const foodItems = await foodModel
+      .find({
+        foodPartner: foodPartner._id,
+      })
+      .sort({
+        createdAt: -1,
+        _id: -1,
+      });
+
+    return res.status(200).json({
+      foodPartner,
+
+      foodItems: foodItems.map((food) => ({
+        ...food.toObject(),
+        comments: food.comments.length,
+      })),
+    });
+  } catch (error) {
+    console.error("getFoodPartner error:", error);
+
+    return res.status(500).json({
+      message: "Unable to fetch food partner",
     });
   }
-
-  const foodItems = await foodModel
-    .find({
-      foodPartner: foodPartner._id,
-    })
-    .sort({
-      createdAt: -1,
-      _id: -1,
-    });
-
-  return res.status(200).json({
-    foodPartner,
-
-    foodItems: foodItems.map((food) => ({
-      ...food.toObject(),
-      comments: food.comments.length,
-    })),
-  });
 }
 
-
 module.exports = {
-  getImageKitUploadAuth,
   createFood,
   getFoodItem,
   getFoodPartner,

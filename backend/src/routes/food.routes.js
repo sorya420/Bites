@@ -5,21 +5,20 @@ const authMiddleware = require("../middlewares/auth.middleware");
 
 const router = express.Router();
 
+/*
+POST /api/food
 
-// ==========================================
-// IMAGEKIT UPLOAD AUTH
-// ==========================================
+The video has already been uploaded
+directly to ImageKit.
 
-router.get(
-  "/upload-auth",
-  authMiddleware.authFoodPartnerMiddleware,
-  foodController.getImageKitUploadAuth
-);
+The request body contains:
 
-
-// ==========================================
-// CREATE FOOD
-// ==========================================
+{
+  name,
+  description,
+  video
+}
+*/
 
 router.post(
   "/",
@@ -27,21 +26,11 @@ router.post(
   foodController.createFood
 );
 
-
-// ==========================================
-// GET FOOD
-// ==========================================
-
 router.get(
   "/",
   authMiddleware.authUserMiddleware,
   foodController.getFoodItem
 );
-
-
-// ==========================================
-// LIKE
-// ==========================================
 
 router.patch(
   "/:foodId/like",
@@ -49,21 +38,11 @@ router.patch(
   foodController.toggleLike
 );
 
-
-// ==========================================
-// ORDER
-// ==========================================
-
 router.post(
   "/:foodId/order",
   authMiddleware.authUserMiddleware,
   foodController.placeOrder
 );
-
-
-// ==========================================
-// COMMENT
-// ==========================================
 
 router.post(
   "/:foodId/comments",
@@ -71,16 +50,10 @@ router.post(
   foodController.addComment
 );
 
-
-// ==========================================
-// FOOD PARTNER
-// ==========================================
-
 router.get(
   "/partner/:partnerId",
   authMiddleware.authUserMiddleware,
   foodController.getFoodPartner
 );
-
 
 module.exports = router;

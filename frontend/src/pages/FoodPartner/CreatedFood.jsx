@@ -5,8 +5,13 @@ import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../configs/config";
 
 const Icon = {
-  back: () => <span aria-hidden="true">&#8592;</span>,
-  upload: () => <span aria-hidden="true">&#8593;</span>,
+  back: () => (
+    <span aria-hidden="true">&#8592;</span>
+  ),
+
+  upload: () => (
+    <span aria-hidden="true">&#8593;</span>
+  ),
 };
 
 export default function CreatedFood() {
@@ -25,8 +30,11 @@ export default function CreatedFood() {
     message: "",
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] =
+    useState(0);
 
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
 
   useEffect(() => {
     return () => {
@@ -36,12 +44,8 @@ export default function CreatedFood() {
     };
   }, [previewUrl]);
 
-
   const handleChange = (event) => {
-    const {
-      name,
-      value,
-    } = event.target;
+    const { name, value } = event.target;
 
     setFormData((current) => ({
       ...current,
@@ -54,7 +58,6 @@ export default function CreatedFood() {
     });
   };
 
-
   const handleVideoChange = (event) => {
     const selectedVideo =
       event.target.files?.[0] || null;
@@ -63,36 +66,139 @@ export default function CreatedFood() {
       return;
     }
 
-    // 100 MB client-side limit
-    const MAX_SIZE = 100 * 1024 * 1024;
-
-    if (selectedVideo.size > MAX_SIZE) {
+    /*
+     * Check actual video MIME type.
+     */
+    if (!selectedVideo.type.startsWith("video/")) {
       setStatus({
         type: "error",
-        message:
-          "Video is too large. Please choose a video under 100 MB.",
+        message: "Please select a valid video file.",
       });
 
       event.target.value = "";
       return;
     }
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
+    /*
+     * 60 seconds maximum.
+     *
+     * We check duration after loading the video.
+     */
+    const temporaryUrl =
+      URL.createObjectURL(selectedVideo);
 
-    setVideo(selectedVideo);
+    const temporaryVideo =
+      document.createElement("video");
 
-    setPreviewUrl(
-      URL.createObjectURL(selectedVideo)
-    );
+    temporaryVideo.preload = "metadata";
 
-    setStatus({
-      type: "",
-      message: "",
-    });
+    temporaryVideo.onloadedmetadata = () => {
+      URL.revokeObjectURL(temporaryUrl);
+
+      if (temporaryVideo.duration > 60) {
+        setStatus({
+          type: "error",
+          message:
+            "Please choose a video that is 60 seconds or shorter.",
+        });
+
+        setVideo(null);
+        setPreviewUrl("");
+        event.target.value = "";
+
+        return;
+      }
+
+      setVideo(selectedVideo);
+      setPreviewUrl(
+        URL.createObjectURL(selectedVideo)
+      );
+
+      setStatus({
+        type: "",
+        message: "",
+      });
+
+      setUploadProgress(0);
+    };
+
+    temporaryVideo.onerror = () => {
+      URL.revokeObjectURL(temporaryUrl);
+
+      setStatus({
+        type: "error",
+        message: "Unable to read this video.",
+      });
+
+      setVideo(null);
+      setPreviewUrl("");
+      event.target.value = "";
+    };
+
+    temporaryVideo.src = temporaryUrl;
   };
 
+  const uploadVideoToImageKit = async () => {
+    if (!video) {
+      throw new Error("Please select a video.");
+    }
+
+    /*
+     * Step 1:
+     * Ask our backend for secure ImageKit
+     * upload authentication.
+     */
+    const authResponse = await axios.get(
+      `${API_URL}/api/upload/imagekit-auth`,
+      {
+        withCredentials: true,
+      }
+    );
+
+    const {
+      token,
+      expire,
+      signature,
+      publicKey,
+    } = authResponse.data;
+
+    /*
+     * Step 2:
+     * Upload the video directly from the browser
+     * to ImageKit.
+     *
+     * The video does NOT pass through Vercel.
+     */
+    const result = await upload({
+      file: video,
+
+      fileName: `food-${Date.now()}-${video.name}`,
+
+      token,
+      expire,
+      signature,
+
+      publicKey,
+
+      onProgress: (event) => {
+        if (event.total) {
+          const progress = Math.round(
+            (event.loaded / event.total) * 100
+          );
+
+          setUploadProgress(progress);
+        }
+      },
+    });
+
+    if (!result?.url) {
+      throw new Error(
+        "ImageKit did not return a video URL."
+      );
+    }
+
+    return result.url;
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -119,130 +225,49 @@ export default function CreatedFood() {
     if (!formData.description.trim()) {
       setStatus({
         type: "error",
-        message:
-          "Description is required.",
+        message: "Description is required.",
       });
 
       return;
     }
 
+    setIsSubmitting(true);
+
+    setStatus({
+      type: "",
+      message: "",
+    });
+
+    setUploadProgress(0);
 
     try {
-      setIsSubmitting(true);
+      /*
+       * Upload video directly to ImageKit.
+       */
+      const videoUrl =
+        await uploadVideoToImageKit();
 
-      // =====================================
-      // STEP 1
-      // Get ImageKit authentication
-      // =====================================
-
-      setStatus({
-        type: "",
-        message:
-          "Preparing video upload...",
-      });
-
-      const authResponse =
-        await axios.get(
-          `${API_URL}/api/food/upload-auth`,
-          {
-            withCredentials: true,
-          }
-        );
-
-      const {
-        token,
-        expire,
-        signature,
-        publicKey,
-      } = authResponse.data;
-
-
-      // =====================================
-      // STEP 2
-      // Upload DIRECTLY to ImageKit
-      // =====================================
-
-      setStatus({
-        type: "",
-        message:
-          "Uploading video... 0%",
-      });
-
-      const uploadResponse =
-        await upload({
-          file: video,
-
-          fileName: `${Date.now()}-${video.name}`,
-
-          token,
-          signature,
-          expire,
-          publicKey,
-
-          folder: "/bites/food-videos",
-
-          useUniqueFileName: true,
-
-          onProgress: (event) => {
-            if (!event.total) return;
-
-            const progress =
-              Math.round(
-                (event.loaded /
-                  event.total) *
-                  100
-              );
-
-            setStatus({
-              type: "",
-              message:
-                `Uploading video... ${progress}%`,
-            });
-          },
-        });
-
-
-      console.log(
-        "ImageKit response:",
-        uploadResponse
-      );
-
-
-      // =====================================
-      // STEP 3
-      // Save URL in MongoDB
-      // =====================================
-
-      setStatus({
-        type: "",
-        message:
-          "Publishing food...",
-      });
-
+      /*
+       * Only the small JSON request goes
+       * through Vercel.
+       */
       await axios.post(
         `${API_URL}/api/food`,
         {
           name: formData.name.trim(),
-
           description:
             formData.description.trim(),
-
-          video: uploadResponse.url,
+          video: videoUrl,
         },
         {
           withCredentials: true,
         }
       );
 
-
-      // =====================================
-      // SUCCESS
-      // =====================================
-
       setStatus({
         type: "success",
         message:
-          "Food video published successfully!",
+          "Food video published successfully.",
       });
 
       setFormData({
@@ -251,41 +276,28 @@ export default function CreatedFood() {
       });
 
       setVideo(null);
-
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-
       setPreviewUrl("");
-
-    } catch (error) {
+      setUploadProgress(0);
+    } catch (requestError) {
       console.error(
-        "Food upload error:",
-        error
-      );
-
-      console.error(
-        "Response:",
-        error.response?.data
+        "Video upload error:",
+        requestError
       );
 
       setStatus({
         type: "error",
         message:
-          error.response?.data?.message ||
-          error.message ||
+          requestError.response?.data?.message ||
+          requestError.message ||
           "Unable to publish this food video.",
       });
-
     } finally {
       setIsSubmitting(false);
     }
   };
 
-
   return (
     <main className="auth-page flex w-full items-center justify-center bg-black">
-
       <div className="relative flex min-h-dvh w-full max-w-105 min-w-0 flex-col bg-[#0A0C10] text-white sm:min-h-0 sm:max-h-228 sm:rounded-[36px] sm:ring-10 sm:ring-black">
 
         <header className="flex shrink-0 items-center gap-3 border-b border-white/10 px-4 pb-3 pt-[calc(14px+env(safe-area-inset-top))]">
@@ -308,9 +320,7 @@ export default function CreatedFood() {
               Create food
             </h1>
           </div>
-
         </header>
-
 
         <form
           onSubmit={handleSubmit}
@@ -323,13 +333,12 @@ export default function CreatedFood() {
             </h2>
 
             <p className="mt-1 text-sm leading-6 text-white/55">
-              Add a short video and tell customers what is on the menu.
+              Add a short video and tell customers
+              what is on the menu.
             </p>
           </div>
 
-
           <label className="block cursor-pointer">
-
             <span className="mb-2 block text-sm font-semibold text-white/80">
               Food video
             </span>
@@ -341,8 +350,9 @@ export default function CreatedFood() {
                   className="h-full w-full object-cover"
                   src={previewUrl}
                   controls
-                  muted
+                  muted={false}
                   playsInline
+                  preload="metadata"
                 />
               ) : (
                 <div className="px-5 text-center">
@@ -361,23 +371,42 @@ export default function CreatedFood() {
 
                 </div>
               )}
-
             </div>
-
 
             <input
               className="sr-only"
               type="file"
               name="video"
               accept="video/mp4,video/quicktime,video/*"
+              capture="environment"
               onChange={handleVideoChange}
             />
-
           </label>
 
+          {isSubmitting && (
+            <div>
+              <div className="mb-1 flex justify-between text-xs text-white/60">
+                <span>
+                  Uploading video...
+                </span>
+
+                <span>
+                  {uploadProgress}%
+                </span>
+              </div>
+
+              <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-orange-400 transition-all"
+                  style={{
+                    width: `${uploadProgress}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           <label className="block">
-
             <span className="mb-2 block text-sm font-semibold text-white/80">
               Food name
             </span>
@@ -391,12 +420,9 @@ export default function CreatedFood() {
               placeholder="e.g. Smoky paneer wrap"
               required
             />
-
           </label>
 
-
           <label className="block">
-
             <span className="mb-2 block text-sm font-semibold text-white/80">
               Description
             </span>
@@ -409,18 +435,14 @@ export default function CreatedFood() {
               placeholder="What makes this dish worth trying?"
               required
             />
-
           </label>
-
 
           {status.message && (
             <p
               className={`text-sm ${
                 status.type === "success"
                   ? "text-emerald-300"
-                  : status.type === "error"
-                  ? "text-rose-300"
-                  : "text-white/70"
+                  : "text-rose-300"
               }`}
               role="status"
             >
@@ -428,21 +450,18 @@ export default function CreatedFood() {
             </p>
           )}
 
-
           <button
             className="min-h-12 w-full rounded-xl bg-orange-400 px-5 py-3 font-bold text-black transition hover:bg-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
             type="submit"
             disabled={isSubmitting}
           >
             {isSubmitting
-              ? "Publishing..."
+              ? `Uploading ${uploadProgress}%`
               : "Publish food"}
           </button>
 
         </form>
-
       </div>
-
     </main>
   );
 }
