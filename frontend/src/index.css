@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #2563eb;
+  --color-secondary: #fbbf24;
+  --breakpoint-xs: 20rem;
+  --breakpoint-3xl: 120rem;
+}
+
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  font-family: Outfit, sans-serif;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100dvh;
+  margin: 0;
+}
+
+body {
+  overflow-x: hidden;
+  background: #000;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+img,
+video,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  min-height: 44px;
+}
+
+input,
+textarea,
+select {
+  max-width: 100%;
+}
+
+.font-playfair {
+  font-family: Playfair !important;
+}
+
+.auth-page {
+  min-height: 100dvh;
+  padding: max(16px, env(safe-area-inset-top)) clamp(12px, 4vw, 24px)
+    max(16px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+.auth-card {
+  width: min(100%, 384px);
+  max-height: calc(100svh - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: clamp(16px, 5vw, 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.auth-title {
+  font-size: clamp(1.25rem, 5vw, 1.5rem);
+}
+
+.auth-submit {
+  min-height: 44px;
+}
+
+.auth-partner-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.auth-partner-fields > input {
+  width: 100%;
+}
+
+@media (max-width: 380px) {
+  .auth-partner-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-page {
+    align-items: flex-start;
+    padding-inline: 12px;
+  }
+
+  .auth-card {
+    border-radius: 18px;
+    margin-block: 8px;
+    padding: 18px 16px;
+  }
+}
+
+@media (max-height: 700px) {
+  .auth-page {
+    align-items: flex-start;
+  }
+
+  .auth-card {
+    margin-block: 8px;
+  }
+}
+
+@media (min-width: 768px) {
+  .auth-page {
+    padding-inline: clamp(24px, 6vw, 72px);
+  }
+
+  .auth-card {
+    width: min(100%, 440px);
+    padding: clamp(24px, 3vw, 36px);
+  }
+}
+
+@media (min-width: 1920px) {
+  .auth-card {
+    width: min(100%, 520px);
+  }
+
+  .auth-title {
+    font-size: clamp(1.5rem, 1.8vw, 2rem);
+  }
+}
+
+@media (min-width: 2560px) {
+  body {
+    font-size: 1.125rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

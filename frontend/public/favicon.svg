@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Deep Electric Blue Gradient -->
+    <linearGradient id="electricBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#00D2FF"/>
+    </linearGradient>
+
+    <!-- Deep Obsidian Black Gradient -->
+    <linearGradient id="obsidianBlack" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B0F19"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+
+    <!-- Sleek Neon Blue Glow -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#00D2FF" flood-opacity="0.3"/>
+    </filter>
+
+    <!-- Bite-Mark Mask -->
+    <mask id="biteMask">
+      <rect width="512" height="512" fill="#FFFFFF"/>
+      <!-- Realistic Bite Indentations (Top Right) -->
+      <circle cx="360" cy="150" r="32" fill="#000000"/>
+      <circle cx="395" cy="185" r="28" fill="#000000"/>
+      <circle cx="340" cy="120" r="24" fill="#000000"/>
+    </mask>
+  </defs>
+
+  <!-- Background App Icon Tile (Pitch Black) -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#obsidianBlack)"/>
+
+  <!-- Outer Neon Blue Rim with Bite cutout -->
+  <circle cx="256" cy="256" r="148" fill="none" stroke="url(#electricBlue)" stroke-width="12" stroke-dasharray="24 12" mask="url(#biteMask)" opacity="0.6"/>
+
+  <!-- Main Spinning Reel / Food Platter Body with Bite Cutout -->
+  <circle cx="256" cy="256" r="128" fill="url(#electricBlue)" mask="url(#biteMask)" filter="url(#neonGlow)"/>
+
+  <!-- Inner Dark Reel Core -->
+  <circle cx="256" cy="256" r="64" fill="#0B0F19"/>
+
+  <!-- Sharp Minimalist Play Triangle -->
+  <path d="M 242 226 
+           C 242 222.8 245.5 220.8 248.3 222.4 
+           L 282.8 249.4 
+           C 285.3 250.9 285.3 254.6 282.8 256.1 
+           L 248.3 283.1 
+           C 245.5 284.7 242 282.7 242 279.5 
+           Z" 
+        fill="url(#electricBlue)"/>
+</svg>
