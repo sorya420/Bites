@@ -1,48 +1,86 @@
 const express = require("express");
+
 const foodController = require("../controllers/food.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
+
 const router = express.Router();
-const multer = require("multer");
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-});
 
-/*POST /api/food/[protected] */
+// ==========================================
+// IMAGEKIT UPLOAD AUTH
+// ==========================================
+
+router.get(
+  "/upload-auth",
+  authMiddleware.authFoodPartnerMiddleware,
+  foodController.getImageKitUploadAuth
+);
+
+
+// ==========================================
+// CREATE FOOD
+// ==========================================
+
 router.post(
   "/",
   authMiddleware.authFoodPartnerMiddleware,
-  upload.single("video"),
-  foodController.createFood,
+  foodController.createFood
 );
 
-/*GET /api/food[protected] */
 
-router.get("/",
+// ==========================================
+// GET FOOD
+// ==========================================
+
+router.get(
+  "/",
   authMiddleware.authUserMiddleware,
-  foodController.getFoodItem,
-)
+  foodController.getFoodItem
+);
 
-router.patch("/:foodId/like",
+
+// ==========================================
+// LIKE
+// ==========================================
+
+router.patch(
+  "/:foodId/like",
   authMiddleware.authUserMiddleware,
-  foodController.toggleLike,
-)
+  foodController.toggleLike
+);
 
-router.post("/:foodId/order",
+
+// ==========================================
+// ORDER
+// ==========================================
+
+router.post(
+  "/:foodId/order",
   authMiddleware.authUserMiddleware,
-  foodController.placeOrder,
-)
+  foodController.placeOrder
+);
 
-router.post("/:foodId/comments",
+
+// ==========================================
+// COMMENT
+// ==========================================
+
+router.post(
+  "/:foodId/comments",
   authMiddleware.authUserMiddleware,
-  foodController.addComment,
-)
+  foodController.addComment
+);
 
-router.get("/partner/:partnerId",
+
+// ==========================================
+// FOOD PARTNER
+// ==========================================
+
+router.get(
+  "/partner/:partnerId",
   authMiddleware.authUserMiddleware,
-  foodController.getFoodPartner, 
-)
-
+  foodController.getFoodPartner
+);
 
 
 module.exports = router;
