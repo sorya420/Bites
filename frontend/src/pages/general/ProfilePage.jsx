@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../../configs/config";
 
 const Icon = {
   back: () => <span aria-hidden="true">&#8592;</span>,
@@ -80,7 +81,7 @@ export default function ProfilePage() {
 
     try {
       const response = await axios.patch(
-        "http://localhost:3000/api/auth/user/profile-image",
+        `${API_URL}/api/auth/user/profile-image`,
         formData,
         { withCredentials: true },
       );
@@ -100,7 +101,7 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     try {
-      await axios.get("http://localhost:3000/api/auth/user/logout", {
+      await axios.get(`${API_URL}/api/auth/user/logout`, {
         withCredentials: true,
       });
       navigate("/user/login");
@@ -115,8 +116,8 @@ export default function ProfilePage() {
     async function loadProfile() {
       try {
         const [profileResponse, ordersResponse] = await Promise.all([
-          axios.get("http://localhost:3000/api/auth/user/me", { withCredentials: true }),
-          axios.get("http://localhost:3000/api/orders/mine", { withCredentials: true }),
+          axios.get(`${API_URL}/api/auth/user/me`, { withCredentials: true }),
+          axios.get(`${API_URL}/api/orders/mine`, { withCredentials: true }),
         ]);
 
         if (!cancelled) {

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { API_URL } from "../../configs/config";
 
 const Icon = {
   back: () => <span aria-hidden="true">&#8592;</span>,
@@ -23,8 +24,8 @@ export default function FoodPartnerProfile() {
     async function loadStore() {
       try {
         const endpoint = partnerId
-          ? `http://localhost:3000/api/food-partner/${partnerId}`
-          : "http://localhost:3000/api/food-partner/me";
+          ? `${API_URL}/api/food-partner/${partnerId}`
+          : `${API_URL}/api/food-partner/me`;
         const { data } = await axios.get(endpoint, { withCredentials: true });
         if (!cancelled) {
           setPartner(data.foodPartner);
@@ -34,7 +35,7 @@ export default function FoodPartnerProfile() {
 
         if (!partnerId) {
           const ordersResponse = await axios.get(
-            "http://localhost:3000/api/orders/received",
+            `${API_URL}/api/orders/received`,
             { withCredentials: true },
           );
           if (!cancelled) setOrders(ordersResponse.data.orders || []);
@@ -65,7 +66,7 @@ export default function FoodPartnerProfile() {
   const updateOrderStatus = async (orderId, nextStatus) => {
     try {
       const { data } = await axios.patch(
-        `http://localhost:3000/api/orders/${orderId}/status`,
+        `${API_URL}/api/orders/${orderId}/status`,
         { status: nextStatus },
         { withCredentials: true },
       );
@@ -81,7 +82,7 @@ export default function FoodPartnerProfile() {
     const nextStatus = status === "Open" ? "Closed" : "Open";
     try {
       await axios.patch(
-        "http://localhost:3000/api/auth/food-partner/status",
+        `${API_URL}/api/auth/food-partner/status`,
         { status: nextStatus },
         { withCredentials: true },
       );

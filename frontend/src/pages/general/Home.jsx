@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../../configs/config";
 
 // ---- small inline icon set (no external icon lib needed) ----
 const Icon = {
@@ -425,7 +426,7 @@ export default function Home() {
 
     async function fetchFoodItems() {
       try {
-        const { data } = await axios.get("http://localhost:3000/api/food", {
+        const { data } = await axios.get(`${API_URL}/api/food`, {
           withCredentials: true,
         });
         const foodItems = Array.isArray(data.foodItems) ? data.foodItems : [];
@@ -501,7 +502,7 @@ export default function Home() {
 
     try {
       const { data } = await axios.patch(
-        `http://localhost:3000/api/food/${reel.id}/like`,
+        `${API_URL}/api/food/${reel.id}/like`,
         {},
         { withCredentials: true },
       );
@@ -523,7 +524,7 @@ export default function Home() {
 
     try {
       const { data } = await axios.post(
-        `http://localhost:3000/api/food/${reel.id}/order`,
+        `${API_URL}/api/food/${reel.id}/order`,
         {},
         { withCredentials: true },
       );
@@ -544,7 +545,7 @@ export default function Home() {
 
     try {
       const { data } = await axios.post(
-        `http://localhost:3000/api/food/${reel.id}/comments`,
+        `${API_URL}/api/food/${reel.id}/comments`,
         { text },
         { withCredentials: true },
       );
@@ -566,7 +567,7 @@ export default function Home() {
 
   const openProfile = async () => {
     try {
-      await axios.get("http://localhost:3000/api/auth/user/me", {
+      await axios.get(`${API_URL}/api/auth/user/me`, {
         withCredentials: true,
       });
       navigate("/profile");
@@ -577,7 +578,7 @@ export default function Home() {
 
     try {
       const { data } = await axios.get(
-        "http://localhost:3000/api/auth/food-partner/me",
+        `${API_URL}/api/auth/food-partner/me`,
         { withCredentials: true },
       );
       const partnerId = data.foodPartner?.id;

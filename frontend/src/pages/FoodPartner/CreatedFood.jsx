@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../../configs/config";
 
 const Icon = {
 	back: () => <span aria-hidden="true">&#8592;</span>,
@@ -49,7 +50,7 @@ export default function CreatedFood() {
 		setIsSubmitting(true);
 		setStatus({ type: "", message: "" });
 		try {
-			await axios.post("http://localhost:3000/api/food", payload, {
+			await axios.post(`${API_URL}/api/food`, payload, {
 				withCredentials: true,
 			});
 			setStatus({ type: "success", message: "Food video published." });

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { API_URL } from "../../configs/config";
 
 export default function FoodPartnerStore() {
   const navigate = useNavigate();
@@ -12,13 +13,14 @@ export default function FoodPartnerStore() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [error, setError] = useState("");
 
+
   useEffect(() => {
     let cancelled = false;
 
     async function loadStore() {
       try {
         const { data } = await axios.get(
-          `http://localhost:3000/api/food-partner/${partnerId}`,
+          `${API_URL}/api/food-partner/${partnerId}`,
           { withCredentials: true },
         );
         if (!cancelled) {
@@ -45,7 +47,7 @@ export default function FoodPartnerStore() {
   const toggleFollow = async () => {
     try {
       const { data } = await axios.patch(
-        `http://localhost:3000/api/auth/user/follow/${partnerId}`,
+        `${API_URL}/api/auth/user/follow/${partnerId}`,
         {},
         { withCredentials: true },
       );
@@ -78,7 +80,7 @@ export default function FoodPartnerStore() {
     setIsSubmitting(true);
     try {
       await axios.post(
-        "http://localhost:3000/api/orders",
+        `${API_URL}/api/orders`,
         { items },
         { withCredentials: true },
       );

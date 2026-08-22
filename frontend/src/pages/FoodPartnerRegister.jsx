@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+import { API_URL } from "../configs/config";
 
 const FoodPartnerRegister = () => {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ const FoodPartnerRegister = () => {
     setLoading(true);
     try {
       const res = await axios.post(
-        "http://localhost:3000/api/auth/food-partner/register",
+        `${API_URL}/api/auth/food-partner/register`,
         formData,
         { withCredentials: true }
       );
