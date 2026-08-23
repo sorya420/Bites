@@ -6,19 +6,19 @@ async function createFood(req, res) {
   try {
     const { name, description, video } = req.body;
 
-    if (!name || !name.trim()) {
+    if (!name?.trim()) {
       return res.status(400).json({
         message: "Food name is required",
       });
     }
 
-    if (!description || !description.trim()) {
+    if (!description?.trim()) {
       return res.status(400).json({
         message: "Food description is required",
       });
     }
 
-    if (!video || !video.trim()) {
+    if (!video?.trim()) {
       return res.status(400).json({
         message: "Food video is required",
       });
@@ -27,7 +27,7 @@ async function createFood(req, res) {
     const foodItem = await foodModel.create({
       name: name.trim(),
       description: description.trim(),
-      video,
+      video: video.trim(),
       foodPartner: req.foodPartner._id,
     });
 
@@ -48,7 +48,10 @@ async function getFoodItem(req, res) {
   try {
     const foodItems = await foodModel
       .find({})
-      .sort({ createdAt: -1, _id: -1 })
+      .sort({
+        createdAt: -1,
+        _id: -1,
+      })
       .populate(
         "foodPartner",
         "name email contactName phone address status"
@@ -56,21 +59,29 @@ async function getFoodItem(req, res) {
 
     const userId = req.user?._id?.toString();
 
-    return res.status(200).json({
-      message: "Food items fetched successfully",
+    const formattedFood = foodItems.map((food) => {
+      const item = food.toObject();
 
-      foodItems: foodItems.map((food) => ({
-        ...food.toObject(),
+      return {
+        ...item,
 
-        comments: food.comments.length,
+        comments: Array.isArray(food.comments)
+          ? food.comments.length
+          : 0,
 
         isLiked: Boolean(
           userId &&
+            Array.isArray(food.likedBy) &&
             food.likedBy.some(
               (id) => id.toString() === userId
             )
         ),
-      })),
+      };
+    });
+
+    return res.status(200).json({
+      message: "Food items fetched successfully",
+      foodItems: formattedFood,
     });
   } catch (error) {
     console.error("getFoodItem error:", error);
@@ -83,7 +94,9 @@ async function getFoodItem(req, res) {
 
 async function toggleLike(req, res) {
   try {
-    const foodItem = await foodModel.findById(req.params.foodId);
+    const foodItem = await foodModel.findById(
+      req.params.foodId
+    );
 
     if (!foodItem) {
       return res.status(404).json({
@@ -99,18 +112,27 @@ async function toggleLike(req, res) {
 
     if (alreadyLiked) {
       foodItem.likedBy.pull(userId);
-      req.user.likedFoodItems.pull(foodItem._id);
+
+      if (req.user.likedFoodItems) {
+        req.user.likedFoodItems.pull(foodItem._id);
+      }
     } else {
       foodItem.likedBy.addToSet(userId);
-      req.user.likedFoodItems.addToSet(foodItem._id);
+
+      if (req.user.likedFoodItems) {
+        req.user.likedFoodItems.addToSet(foodItem._id);
+      }
     }
 
     foodItem.likes = foodItem.likedBy.length;
 
-    await Promise.all([
-      foodItem.save(),
-      req.user.save(),
-    ]);
+    const operations = [foodItem.save()];
+
+    if (req.user.likedFoodItems) {
+      operations.push(req.user.save());
+    }
+
+    await Promise.all(operations);
 
     return res.status(200).json({
       liked: !alreadyLiked,
@@ -135,27 +157,22 @@ async function placeOrder(req, res) {
     ],
   };
 
-  const originalJson = res.json.bind(res);
-
-  res.json = (payload) =>
-    originalJson({
-      ...payload,
-
-      orderCount: payload.order?.items?.[0]
-        ? undefined
-        : payload.orderCount,
-    });
-
   return orderController.createOrder(req, res);
 }
 
 async function addComment(req, res) {
   try {
-    const text = req.body.text?.trim();
+    const text = req.body?.text?.trim();
 
     if (!text) {
       return res.status(400).json({
         message: "Comment text is required",
+      });
+    }
+
+    if (text.length > 500) {
+      return res.status(400).json({
+        message: "Comment cannot exceed 500 characters",
       });
     }
 
@@ -176,8 +193,26 @@ async function addComment(req, res) {
 
     await foodItem.save();
 
+    const newComment =
+      foodItem.comments[
+        foodItem.comments.length - 1
+      ];
+
+    const populatedFood = await foodModel
+      .findById(foodItem._id)
+      .populate(
+        "comments.user",
+        "name firstname lastname fullName email"
+      );
+
+    const populatedComment =
+      populatedFood?.comments[
+        populatedFood.comments.length - 1
+      ];
+
     return res.status(201).json({
       message: "Comment added successfully",
+      comment: populatedComment || newComment,
       comments: foodItem.comments.length,
     });
   } catch (error) {
@@ -185,6 +220,39 @@ async function addComment(req, res) {
 
     return res.status(500).json({
       message: "Unable to add comment",
+    });
+  }
+}
+
+async function getComments(req, res) {
+  try {
+    const foodItem = await foodModel
+      .findById(req.params.foodId)
+      .populate(
+        "comments.user",
+        "name firstname lastname fullName email"
+      );
+
+    if (!foodItem) {
+      return res.status(404).json({
+        message: "Food item not found",
+      });
+    }
+
+    const comments = Array.isArray(foodItem.comments)
+      ? foodItem.comments
+      : [];
+
+    return res.status(200).json({
+      message: "Comments fetched successfully",
+      comments,
+      count: comments.length,
+    });
+  } catch (error) {
+    console.error("getComments error:", error);
+
+    return res.status(500).json({
+      message: "Unable to load comments",
     });
   }
 }
@@ -218,7 +286,10 @@ async function getFoodPartner(req, res) {
 
       foodItems: foodItems.map((food) => ({
         ...food.toObject(),
-        comments: food.comments.length,
+
+        comments: Array.isArray(food.comments)
+          ? food.comments.length
+          : 0,
       })),
     });
   } catch (error) {
@@ -237,4 +308,5 @@ module.exports = {
   toggleLike,
   placeOrder,
   addComment,
+  getComments,
 };

@@ -1,5 +1,25 @@
 const mongoose = require("mongoose");
 
+const commentSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      required: true,
+    },
+
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 500,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
 const foodSchema = new mongoose.Schema(
   {
     name: {
@@ -8,15 +28,15 @@ const foodSchema = new mongoose.Schema(
       trim: true,
     },
 
-    video: {
-      type: String,
-      required: true,
-    },
-
     description: {
       type: String,
       required: true,
       trim: true,
+    },
+
+    video: {
+      type: String,
+      required: true,
     },
 
     foodPartner: {
@@ -42,33 +62,11 @@ const foodSchema = new mongoose.Schema(
       },
     ],
 
-    comments: [
-      {
-        user: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "user",
-          required: true,
-        },
-
-        text: {
-          type: String,
-          required: true,
-          trim: true,
-          maxlength: 500,
-        },
-
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
+    comments: [commentSchema],
   },
   {
     timestamps: true,
   }
 );
 
-const foodModel = mongoose.model("food", foodSchema);
-
-module.exports = foodModel;
+module.exports = mongoose.model("food", foodSchema);
