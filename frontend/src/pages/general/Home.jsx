@@ -161,6 +161,36 @@ const Icon = {
       <polygon points="22 2 15 22 11 13 2 9 22 2" />
     </svg>
   ),
+
+  volumeOn: () => (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </svg>
+  ),
+
+  volumeOff: () => (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <line x1="23" y1="9" x2="17" y2="15" />
+      <line x1="17" y1="9" x2="23" y2="15" />
+    </svg>
+  ),
 };
 
 function CommentSheet({
@@ -320,6 +350,7 @@ function ReelCard({
   total,
   isActive,
   muted,
+  onToggleMute,
   liked,
   saved,
   onToggleLike,
@@ -473,6 +504,18 @@ function ReelCard({
             <span>✦</span>
             Bites
           </div>
+
+          <button
+            type="button"
+            data-no-tap
+            onClick={onToggleMute}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white"
+            aria-label={muted ? "Unmute" : "Mute"}
+          >
+            <span className="h-4.5 w-4.5">
+              {muted ? <Icon.volumeOff /> : <Icon.volumeOn />}
+            </span>
+          </button>
         </div>
       </div>
 
@@ -606,7 +649,7 @@ export default function Home() {
 
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const muted = true;
+  const [muted, setMuted] = useState(true);
 
   const [liked, setLiked] = useState({});
 
@@ -1194,6 +1237,7 @@ export default function Home() {
                 total={reels.length}
                 isActive={activeIndex === i}
                 muted={muted}
+                onToggleMute={() => setMuted((m) => !m)}
                 liked={!!liked[i]}
                 saved={!!saved[i]}
                 onToggleLike={toggleLike}
