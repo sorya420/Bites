@@ -1,92 +1,269 @@
 const foodModel = require("../models/food.model");
-const orderModel = require("../models/order.model");
+const foodPartnerModel = require("../models/foodpartner.model");
+const orderController = require("./order.controller");
 
-function normalizeItems(items) {
-  if (!Array.isArray(items)) return [];
+async function createFood(req, res) {
+  try {
+    const { name, description, video } = req.body;
 
-  return items
-    .map((item) => ({
-      food: item.food,
-      quantity: Number(item.quantity),
-    }))
-    .filter((item) => item.food && Number.isInteger(item.quantity) && item.quantity > 0);
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        message: "Food name is required",
+      });
+    }
+
+    if (!description || !description.trim()) {
+      return res.status(400).json({
+        message: "Food description is required",
+      });
+    }
+
+    if (!video || !video.trim()) {
+      return res.status(400).json({
+        message: "Food video is required",
+      });
+    }
+
+    const foodItem = await foodModel.create({
+      name: name.trim(),
+      description: description.trim(),
+      video,
+      foodPartner: req.foodPartner._id,
+    });
+
+    return res.status(201).json({
+      message: "Food created successfully",
+      food: foodItem,
+    });
+  } catch (error) {
+    console.error("createFood error:", error);
+
+    return res.status(500).json({
+      message: "Unable to create food",
+    });
+  }
 }
 
-async function createOrder(req, res) {
-  const items = normalizeItems(req.body.items);
-  if (!items.length) {
-    return res.status(400).json({ message: "Add at least one food item" });
+async function getFoodItem(req, res) {
+  try {
+    const foodItems = await foodModel
+      .find({})
+      .sort({ createdAt: -1, _id: -1 })
+      .populate("foodPartner", "name email contactName phone address status");
+
+    const userId = req.user?._id?.toString();
+
+    return res.status(200).json({
+      message: "Food items fetched successfully",
+
+      foodItems: foodItems.map((food) => ({
+        ...food.toObject(),
+
+        // Keep this as a number for the reel counter.
+        comments: Array.isArray(food.comments) ? food.comments.length : 0,
+
+        isLiked: Boolean(
+          userId && food.likedBy?.some((id) => id.toString() === userId),
+        ),
+      })),
+    });
+  } catch (error) {
+    console.error("getFoodItem error:", error);
+
+    return res.status(500).json({
+      message: "Unable to fetch food items",
+    });
   }
+}
 
-  const foodItems = await foodModel.find({
-    _id: { $in: items.map((item) => item.food) },
-  });
-  if (foodItems.length !== items.length) {
-    return res.status(400).json({ message: "One or more food items were not found" });
+async function toggleLike(req, res) {
+  try {
+    const foodItem = await foodModel.findById(req.params.foodId);
+
+    if (!foodItem) {
+      return res.status(404).json({
+        message: "Food item not found",
+      });
+    }
+
+    const userId = req.user._id;
+
+    const alreadyLiked = foodItem.likedBy.some((id) => id.equals(userId));
+
+    if (alreadyLiked) {
+      foodItem.likedBy.pull(userId);
+      req.user.likedFoodItems.pull(foodItem._id);
+    } else {
+      foodItem.likedBy.addToSet(userId);
+      req.user.likedFoodItems.addToSet(foodItem._id);
+    }
+
+    foodItem.likes = foodItem.likedBy.length;
+
+    await Promise.all([foodItem.save(), req.user.save()]);
+
+    return res.status(200).json({
+      liked: !alreadyLiked,
+      likes: foodItem.likes,
+    });
+  } catch (error) {
+    console.error("toggleLike error:", error);
+
+    return res.status(500).json({
+      message: "Unable to update like",
+    });
   }
+}
 
-  const partnerIds = new Set(foodItems.map((food) => food.foodPartner.toString()));
-  if (partnerIds.size !== 1) {
-    return res.status(400).json({ message: "Order items must come from one food partner" });
-  }
-
-  const foodById = new Map(foodItems.map((food) => [food._id.toString(), food]));
-  const order = await orderModel.create({
-    user: req.user._id,
-    foodPartner: foodItems[0].foodPartner,
-    items: items.map((item) => ({
-      food: item.food,
-      name: foodById.get(item.food.toString()).name,
-      quantity: item.quantity,
-    })),
-  });
-
-  await foodModel.bulkWrite(
-    items.map((item) => ({
-      updateOne: {
-        filter: { _id: item.food },
-        update: { $inc: { orderCount: item.quantity } },
+async function placeOrder(req, res) {
+  req.body = {
+    items: [
+      {
+        food: req.params.foodId,
+        quantity: 1,
       },
-    })),
-  );
+    ],
+  };
 
-  return res.status(201).json({ message: "Order placed successfully", order });
+  const originalJson = res.json.bind(res);
+
+  res.json = (payload) =>
+    originalJson({
+      ...payload,
+
+      orderCount: payload.order?.items?.[0] ? undefined : payload.orderCount,
+    });
+
+  return orderController.createOrder(req, res);
 }
 
-async function getMyOrders(req, res) {
-  const orders = await orderModel
-    .find({ user: req.user._id })
-    .populate("foodPartner", "name address")
-    .sort({ createdAt: -1 });
-  return res.status(200).json({ orders });
-}
+//add comments
 
-async function getReceivedOrders(req, res) {
-  const orders = await orderModel
-    .find({ foodPartner: req.foodPartner._id })
-    .populate("user", "fullName email")
-    .sort({ createdAt: -1 });
-  return res.status(200).json({ orders });
-}
+async function addComment(req, res) {
+  try {
+    const text = req.body.text?.trim();
 
-async function updateOrderStatus(req, res) {
-  const allowedStatuses = ["placed", "preparing", "delivered", "cancelled"];
-  if (!allowedStatuses.includes(req.body.status)) {
-    return res.status(400).json({ message: "Invalid order status" });
+    if (!text) {
+      return res.status(400).json({
+        message: "Comment text is required",
+      });
+    }
+
+    if (text.length > 500) {
+      return res.status(400).json({
+        message: "Comment cannot exceed 500 characters",
+      });
+    }
+
+    const foodItem = await foodModel.findById(req.params.foodId);
+
+    if (!foodItem) {
+      return res.status(404).json({
+        message: "Food item not found",
+      });
+    }
+
+    foodItem.comments.push({
+      user: req.user._id,
+      text,
+    });
+
+    await foodItem.save();
+
+    //gets newly created comments
+
+    const newComment = foodItem.comments[foodItem.comments.length - 1];
+
+    return res.status(201).json({
+      message: "Comment added successfully",
+
+      comment: newComment,
+
+      comments: foodItem.comments.length,
+    });
+  } catch (error) {
+    console.error("addComment error:", error);
+
+    return res.status(500).json({
+      message: "Unable to add comment",
+    });
   }
+}
 
-  const order = await orderModel.findOneAndUpdate(
-    { _id: req.params.orderId, foodPartner: req.foodPartner._id },
-    { status: req.body.status },
-    { new: true },
-  );
-  if (!order) return res.status(404).json({ message: "Order not found" });
-  return res.status(200).json({ order });
+//get comments
+async function getComments(req, res) {
+  try {
+    const foodItem = await foodModel
+      .findById(req.params.foodId)
+      .populate("comments.user", "fullName firstname lastname name");
+
+    if (!foodItem) {
+      return res.status(404).json({
+        message: "Food item not found",
+      });
+    }
+
+    const comments = Array.isArray(foodItem.comments) ? foodItem.comments : [];
+
+    return res.status(200).json({
+      message: "Comments fetched successfully",
+      comments,
+      count: comments.length,
+    });
+  } catch (error) {
+    console.error("getComments error:", error);
+
+    return res.status(500).json({
+      message: "Unable to fetch comments",
+    });
+  }
+}
+
+async function getFoodPartner(req, res) {
+  try {
+    const foodPartner = await foodPartnerModel
+      .findById(req.params.partnerId)
+      .select("name email contactName phone address status");
+
+    if (!foodPartner) {
+      return res.status(404).json({
+        message: "Food partner not found",
+      });
+    }
+
+    const foodItems = await foodModel
+      .find({
+        foodPartner: foodPartner._id,
+      })
+      .sort({
+        createdAt: -1,
+        _id: -1,
+      });
+
+    return res.status(200).json({
+      foodPartner,
+
+      foodItems: foodItems.map((food) => ({
+        ...food.toObject(),
+
+        comments: Array.isArray(food.comments) ? food.comments.length : 0,
+      })),
+    });
+  } catch (error) {
+    console.error("getFoodPartner error:", error);
+
+    return res.status(500).json({
+      message: "Unable to fetch food partner",
+    });
+  }
 }
 
 module.exports = {
-  createOrder,
-  getMyOrders,
-  getReceivedOrders,
-  updateOrderStatus,
+  createFood,
+  getFoodItem,
+  getFoodPartner,
+  toggleLike,
+  placeOrder,
+  addComment,
+  getComments,
 };
