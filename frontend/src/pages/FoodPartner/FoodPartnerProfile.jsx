@@ -103,6 +103,13 @@ export default function FoodPartnerProfile() {
     0,
   );
 
+  // Comments can arrive either as a count (number) or, from some
+  // endpoints, as the raw array of comment objects. Always normalize
+  // to a safe renderable number so React never tries to render a
+  // comment object (or array of them) directly as a child.
+  const getCommentCount = (food) =>
+    Array.isArray(food.comments) ? food.comments.length : food.comments || 0;
+
   // ==========================================
   // UPDATE ORDER STATUS
   // ==========================================
@@ -350,7 +357,7 @@ export default function FoodPartnerProfile() {
 
                         <span>Likes {food.likes || 0}</span>
 
-                        <span>Comments {food.comments || 0}</span>
+                        <span>Comments {getCommentCount(food)}</span>
                       </div>
                     </article>
                   ))}
