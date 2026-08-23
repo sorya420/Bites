@@ -92,11 +92,34 @@ export default function CreatedFood() {
     const temporaryVideo = document.createElement("video");
 
     temporaryVideo.preload = "metadata";
+    temporaryVideo.muted = true;
+    temporaryVideo.playsInline = true;
+
+    // IMPORTANT FIX:
+    // Some mobile browsers (Android Chrome/WebViews especially) fail to
+    // load metadata on a <video> element that isn't attached to the DOM,
+    // and fire onerror even for valid MP4/MOV files. Attaching it
+    // off-screen (not display:none, which can also pause loading) fixes
+    // this false-positive error.
+    temporaryVideo.style.position = "fixed";
+    temporaryVideo.style.width = "1px";
+    temporaryVideo.style.height = "1px";
+    temporaryVideo.style.opacity = "0";
+    temporaryVideo.style.pointerEvents = "none";
+    document.body.appendChild(temporaryVideo);
+
+    const cleanupTemporaryVideo = () => {
+      URL.revokeObjectURL(temporaryUrl);
+
+      if (temporaryVideo.parentNode) {
+        temporaryVideo.parentNode.removeChild(temporaryVideo);
+      }
+    };
 
     temporaryVideo.onloadedmetadata = () => {
       const duration = temporaryVideo.duration;
 
-      URL.revokeObjectURL(temporaryUrl);
+      cleanupTemporaryVideo();
 
       if (!Number.isFinite(duration)) {
         setStatus({
@@ -141,7 +164,7 @@ export default function CreatedFood() {
     };
 
     temporaryVideo.onerror = () => {
-      URL.revokeObjectURL(temporaryUrl);
+      cleanupTemporaryVideo();
 
       setStatus({
         type: "error",
